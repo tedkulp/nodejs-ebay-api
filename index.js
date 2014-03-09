@@ -126,6 +126,15 @@ var buildRequestUrl = function buildRequestUrl(serviceName, params, filters, san
 module.exports.buildRequestUrl = buildRequestUrl;
 
 
+var getNamespace = function getNamespace(serviceName) {
+  switch (serviceName) {
+    case "FindingService":
+      return "http://www.ebay.com/marketplace/search/v1/services";
+    default:
+      return "urn:ebay:apis:eBLBaseComponents";
+  }
+};
+
 
 // build XML input for XML-POST requests
 // params should include: authToken, ...
@@ -136,18 +145,18 @@ module.exports.buildRequestUrl = buildRequestUrl;
 //
 // for repeatable fields, use an array value (see below)
 //
-var buildXmlInput = function buildXmlInput(opType, params) {
+var buildXmlInput = function buildXmlInput(serviceName, opType, params) {
   var xmlBuilder = require('xml');
-  
-  var data = {}, top;
-  
+
+  var data = {}, top, namespace = getNamespace(serviceName);
+
   switch(opType) {
     // @todo others might have different top levels...
     case 'GetOrders':
     default:
       data[opType + 'Request'] = [];      // e.g. <GetOrdersRequest>
       top = data[opType + 'Request'];
-      top.push({ '_attr' : { 'xmlns' : "urn:ebay:apis:eBLBaseComponents" } });      
+      top.push({ '_attr' : { 'xmlns' : namespace } });      
   }
   
   if (typeof params.authToken !== 'undefined') {
@@ -173,7 +182,6 @@ var buildXmlInput = function buildXmlInput(opType, params) {
   return '<?xml version="1.0" encoding="UTF-8"?>' + "\n" + xmlBuilder(data, true);
 };
 
-
 // default params per service type.
 // for GET requests these go into URL. for POST requests these go into headers.
 // options differ by service, see below.
@@ -183,8 +191,8 @@ var defaultParams = function defaultParams(options) {
   return {
     'FindingService': {
       'X-EBAY-SOA-SECURITY-APPNAME': options.appId ? options.appId : null,
-      'X-EBAY-SOA-REQUEST-DATA-FORMAT': 'JSON',
-      'X-EBAY-SOA-RESPONSE-DATA-FORMAT': 'JSON',
+      'X-EBAY-SOA-REQUEST-DATA-FORMAT': 'XML',
+      'X-EBAY-SOA-RESPONSE-DATA-FORMAT': 'XML',
       'X-EBAY-SOA-GLOBAL-ID': options.globalId ? options.globalId : 'EBAY-US',
       'X-EBAY-SOA-SERVICE-VERSION': options.version ? options.version : '1.11.0',
       'X-EBAY-SOA-OPERATION-NAME': options.opType
@@ -330,7 +338,7 @@ var ebayApiPostXmlRequest = function ebayApiPostXmlRequest(options, callback) {
   var url = buildRequestUrl(options.serviceName, {}, {}, options.sandbox);
   // console.log('URL:', url);
   
-  options.reqOptions.data = buildXmlInput(options.opType, options.params);
+  options.reqOptions.data = buildXmlInput(options.serviceName, options.opType, options.params);
   // console.log(options.reqOptions.data);
   
   var request = requestModule.post({'url': url, 'headers': options.reqOptions.headers, 'body': options.reqOptions.data}, function(error, response, result) {
