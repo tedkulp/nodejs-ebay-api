@@ -146,40 +146,24 @@ var getNamespace = function getNamespace(serviceName) {
 // for repeatable fields, use an array value (see below)
 //
 var buildXmlInput = function buildXmlInput(serviceName, opType, params) {
-  var xmlBuilder = require('xml');
+  var jstoxml = require('jstoxml'); 
+  var data = [], namespace = getNamespace(serviceName);
 
-  var data = {}, top, namespace = getNamespace(serviceName);
+  if (typeof params.authToken !== 'undefined') {
+    params.RequesterCredentials = { 'eBayAuthToken' : params.authToken };
+    delete params.authToken;
+  }
 
   switch(opType) {
     // @todo others might have different top levels...
     case 'GetOrders':
     default:
-      data[opType + 'Request'] = [];      // e.g. <GetOrdersRequest>
-      top = data[opType + 'Request'];
-      top.push({ '_attr' : { 'xmlns' : namespace } });      
+      data.push({ '_name' : opType + 'Request', '_content': params, '_attrs': { 'xmlns' : namespace } });
   }
-  
-  if (typeof params.authToken !== 'undefined') {
-    top.push({ 'RequesterCredentials' : [ { 'eBayAuthToken' : params.authToken } ] });
-    delete params.authToken;
-  }
-  
-  // for repeatable fields, use array values.
-  // to keep this simpler, treat everything as an array value.
-  _(params).each(function(values, key) {
-    if (!_.isArray(values)) values = [values];
-    
-    _(values).each(function(value){
-      var el = {};
-      el[key] = value;
-      top.push(el);      
-    });
-  });
 
-  // console.log(util.inspect(data,true,10));
-  data = [ data ];
-
-  return '<?xml version="1.0" encoding="UTF-8"?>' + "\n" + xmlBuilder(data, true);
+  var xmlRequest = jstoxml.toXML(data);
+  // console.log(xmlRequest); 
+  return '<?xml version="1.0" encoding="UTF-8"?>' + "\n" + xmlRequest;
 };
 
 // default params per service type.
