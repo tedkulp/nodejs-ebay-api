@@ -333,7 +333,7 @@ var ebayApiPostXmlRequest = function ebayApiPostXmlRequest(options, callback) {
   options.reqOptions.data = buildXmlInput(options.opType, options.params);
   // console.log(options.reqOptions.data);
   
-  var request = requestModule.post({'url': url, 'headers': options.reqOptions}, function(error, response, result) {
+  var request = requestModule.post({'url': url, 'headers': options.reqOptions.headers, 'body': options.reqOptions.data}, function(error, response, result) {
     if (result instanceof Error) {
       var error = result;
       error.message = "Completed with error: " + error.message;
